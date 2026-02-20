@@ -8,6 +8,11 @@ export declare class NativeRequest extends SharedObject {
     requestInit: NativeRequestInit,
     requestBody: Uint8Array | null
   ): Promise<NativeResponse>;
+  public startWithFileBody(
+    url: string,
+    requestInit: NativeRequestInit,
+    fileUri: string
+  ): Promise<NativeResponse>;
   public cancel(): void;
 }
 

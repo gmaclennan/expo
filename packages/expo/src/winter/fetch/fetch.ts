@@ -14,6 +14,14 @@ import type { FetchRequestInit, FetchRequestLike } from './fetch.types';
 const isRequest = (input: any): input is FetchRequestLike =>
   input != null && typeof input === 'object' && 'body' in input;
 
+/** Returns if `body` is an expo-file-system File object (duck-typed) */
+const isExpoFile = (body: any): body is { uri: string; type: string } =>
+  typeof body === 'object' &&
+  body != null &&
+  typeof body.uri === 'string' &&
+  body.uri.startsWith('file://') &&
+  'type' in body;
+
 // TODO(@kitten): Do we really want to use our own types for web standards?
 export async function fetch(
   input: string | URL | FetchRequestLike,
@@ -39,9 +47,18 @@ export async function fetch(
 
   const request = new ExpoFetchModule.NativeRequest(response) as NativeRequest;
 
-  const { body: requestBody, overriddenHeaders } = await normalizeBodyInitAsync(body);
-  if (overriddenHeaders) {
-    headers = overrideHeaders(headers, overriddenHeaders);
+  let requestBody: Uint8Array | null = null;
+  let fileUri: string | null = null;
+
+  if (isExpoFile(body)) {
+    fileUri = body.uri;
+    headers = overrideHeaders(headers, [['Content-Type', body.type]]);
+  } else {
+    const { body: normalizedBody, overriddenHeaders } = await normalizeBodyInitAsync(body);
+    requestBody = normalizedBody;
+    if (overriddenHeaders) {
+      headers = overrideHeaders(headers, overriddenHeaders);
+    }
   }
 
   const nativeRequestInit: NativeRequestInit = {
@@ -58,7 +75,11 @@ export async function fetch(
     request.cancel();
   });
   try {
-    await request.start(`${url}`, nativeRequestInit, requestBody);
+    if (fileUri != null) {
+      await request.startWithFileBody(`${url}`, nativeRequestInit, fileUri);
+    } else {
+      await request.start(`${url}`, nativeRequestInit, requestBody);
+    }
   } catch (e: unknown) {
     if (e instanceof Error) {
       throw FetchError.createFromError(e);

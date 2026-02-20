@@ -9,7 +9,10 @@ import okhttp3.CookieJar
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 import java.net.URL
 
 private data class RequestHolder(var request: Request?)
@@ -22,18 +25,6 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
   private var task: Call? = null
 
   fun start(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, requestBody: ByteArray?) {
-    val clientBuilder = client.newBuilder()
-    if (requestInit.credentials != NativeRequestCredentials.INCLUDE) {
-      clientBuilder.cookieJar(CookieJar.NO_COOKIES)
-    }
-    if (requestInit.redirect != NativeRequestRedirect.FOLLOW) {
-      clientBuilder.followRedirects(false)
-      clientBuilder.followSslRedirects(false)
-    }
-
-    val newClient = clientBuilder.build()
-    response.redirectMode = requestInit.redirect
-
     val headers = requestInit.headers.toHeaders()
     val mediaType = headers["Content-Type"]?.toMediaTypeOrNull()
     val reqBody = requestBody?.toRequestBody(mediaType) ?: run {
@@ -47,6 +38,32 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
         null
       }
     }
+    enqueueRequest(client, url, requestInit, reqBody)
+  }
+
+  fun startWithFileBody(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, fileUri: String) {
+    val headers = requestInit.headers.toHeaders()
+    val mediaType = headers["Content-Type"]?.toMediaTypeOrNull()
+    val filePath = fileUri.removePrefix("file://")
+    val file = File(filePath)
+    val reqBody = file.asRequestBody(mediaType)
+    enqueueRequest(client, url, requestInit, reqBody)
+  }
+
+  private fun enqueueRequest(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, reqBody: RequestBody?) {
+    val clientBuilder = client.newBuilder()
+    if (requestInit.credentials != NativeRequestCredentials.INCLUDE) {
+      clientBuilder.cookieJar(CookieJar.NO_COOKIES)
+    }
+    if (requestInit.redirect != NativeRequestRedirect.FOLLOW) {
+      clientBuilder.followRedirects(false)
+      clientBuilder.followSslRedirects(false)
+    }
+
+    val newClient = clientBuilder.build()
+    response.redirectMode = requestInit.redirect
+
+    val headers = requestInit.headers.toHeaders()
     val request = Request.Builder()
       .headers(headers)
       .method(requestInit.method, reqBody)

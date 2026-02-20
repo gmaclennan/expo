@@ -138,6 +138,27 @@ class ExpoFetchModule : Module() {
         }
       }
 
+      AsyncFunction("startWithFileBody") {
+          request: NativeRequest,
+          url: URL,
+          requestInit: NativeRequestInit,
+          fileUri: String,
+          promise: Promise ->
+        request.startWithFileBody(client, url, requestInit, fileUri)
+        request.response.waitForStates(
+          listOf(
+            ResponseState.RESPONSE_RECEIVED,
+            ResponseState.ERROR_RECEIVED
+          )
+        ) { state ->
+          if (state == ResponseState.RESPONSE_RECEIVED) {
+            promise.resolve()
+          } else if (state == ResponseState.ERROR_RECEIVED) {
+            promise.reject(request.response.error?.toCodedException() ?: FetchUnknownException())
+          }
+        }
+      }
+
       AsyncFunction("cancel") { request: NativeRequest ->
         request.cancel()
       }
