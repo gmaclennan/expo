@@ -50,15 +50,16 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
   fun startWithFile(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, file: SharedObject) {
     val headers = requestInit.headers.toHeaders()
     val mediaType = headers["Content-Type"]?.toMediaTypeOrNull()
-    val uri = (file as? FileSystemPath)?.uri
+    val fileSystemPath = file as? FileSystemPath
       ?: throw IllegalArgumentException(
         "fetch body must be a FileSystemFile object with a uri property, got ${file.javaClass.name}"
       )
+    val uri = fileSystemPath.uri
     val path = uri.path
     val reqBody = if (uri.scheme == "content") {
       val context = appContext.reactContext
         ?: throw IllegalStateException("React context is not available")
-      ContentUriRequestBody(context.contentResolver, uri, mediaType)
+      ContentUriRequestBody(context.contentResolver, uri, mediaType, fileSystemPath)
     } else if (path != null) {
       File(path).asRequestBody(mediaType)
     } else {
@@ -107,9 +108,15 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
 private class ContentUriRequestBody(
   private val contentResolver: ContentResolver,
   private val uri: Uri,
-  private val mediaType: MediaType?
+  private val mediaType: MediaType?,
+  private val fileSystemPath: FileSystemPath
 ) : RequestBody() {
   override fun contentType(): MediaType? = mediaType
+
+  override fun contentLength(): Long {
+    val length = fileSystemPath.file.length()
+    return if (length > 0) length else -1L
+  }
 
   override fun writeTo(sink: BufferedSink) {
     val inputStream = contentResolver.openInputStream(uri)
