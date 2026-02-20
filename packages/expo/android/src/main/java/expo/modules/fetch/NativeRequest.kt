@@ -2,16 +2,21 @@
 
 package expo.modules.fetch
 
+import android.content.ContentResolver
+import android.net.Uri
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.sharedobjects.SharedObject
 import okhttp3.Call
 import okhttp3.CookieJar
+import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.BufferedSink
+import okio.source
 import java.io.File
 import java.net.URL
 
@@ -44,9 +49,15 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
   fun startWithFileBody(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, fileUri: String) {
     val headers = requestInit.headers.toHeaders()
     val mediaType = headers["Content-Type"]?.toMediaTypeOrNull()
-    val filePath = fileUri.removePrefix("file://")
-    val file = File(filePath)
-    val reqBody = file.asRequestBody(mediaType)
+    val uri = Uri.parse(fileUri)
+    val reqBody = if (uri.scheme == "content") {
+      val context = appContext.reactContext
+        ?: throw IllegalStateException("React context is not available")
+      ContentUriRequestBody(context.contentResolver, uri, mediaType)
+    } else {
+      val filePath = fileUri.removePrefix("file://")
+      File(filePath).asRequestBody(mediaType)
+    }
     enqueueRequest(client, url, requestInit, reqBody)
   }
 
@@ -80,5 +91,25 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
     val task = this.task ?: return
     task.cancel()
     response.emitRequestCanceled()
+  }
+}
+
+/**
+ * An OkHttp RequestBody that streams content from a content:// URI
+ * via ContentResolver without loading the entire file into memory.
+ */
+private class ContentUriRequestBody(
+  private val contentResolver: ContentResolver,
+  private val uri: Uri,
+  private val mediaType: MediaType?
+) : RequestBody() {
+  override fun contentType(): MediaType? = mediaType
+
+  override fun writeTo(sink: BufferedSink) {
+    val inputStream = contentResolver.openInputStream(uri)
+      ?: throw IllegalStateException("Unable to open input stream for URI: $uri")
+    inputStream.use { stream ->
+      sink.writeAll(stream.source())
+    }
   }
 }

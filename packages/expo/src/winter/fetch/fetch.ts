@@ -19,7 +19,7 @@ const isExpoFile = (body: any): body is { uri: string; type: string } =>
   typeof body === 'object' &&
   body != null &&
   typeof body.uri === 'string' &&
-  body.uri.startsWith('file://') &&
+  (body.uri.startsWith('file://') || body.uri.startsWith('content://')) &&
   'type' in body;
 
 // TODO(@kitten): Do we really want to use our own types for web standards?
