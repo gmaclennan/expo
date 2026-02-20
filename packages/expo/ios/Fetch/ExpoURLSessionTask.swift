@@ -45,7 +45,7 @@ internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSe
     self.delegate.urlSessionDidStart(self)
   }
 
-  func startWithFileBody(
+  func startWithFile(
     urlSession: URLSession,
     urlSessionDelegate: URLSessionSessionDelegateProxy,
     url: URL,

@@ -31,7 +31,7 @@ internal final class NativeRequest: SharedObject, @unchecked Sendable {
     )
   }
 
-  func startWithFileBody(
+  func startWithFile(
     urlSession: URLSession,
     urlSessionDelegate: URLSessionSessionDelegateProxy,
     url: URL,
@@ -45,7 +45,7 @@ internal final class NativeRequest: SharedObject, @unchecked Sendable {
       throw FetchFileBodyException()
     }
     self.response.redirectMode = requestInit.redirect
-    self.task.startWithFileBody(
+    self.task.startWithFile(
       urlSession: urlSession,
       urlSessionDelegate: urlSessionDelegate,
       url: url,

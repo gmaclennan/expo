@@ -77,7 +77,7 @@ export async function fetch(
   });
   try {
     if (fileObject != null) {
-      await request.startWithFileBody(`${url}`, nativeRequestInit, fileObject);
+      await request.startWithFile(`${url}`, nativeRequestInit, fileObject);
     } else {
       await request.start(`${url}`, nativeRequestInit, requestBody);
     }

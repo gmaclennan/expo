@@ -139,13 +139,13 @@ class ExpoFetchModule : Module() {
         }
       }
 
-      AsyncFunction("startWithFileBody") {
+      AsyncFunction("startWithFile") {
           request: NativeRequest,
           url: URL,
           requestInit: NativeRequestInit,
           file: SharedObject,
           promise: Promise ->
-        request.startWithFileBody(client, url, requestInit, file)
+        request.startWithFile(client, url, requestInit, file)
         request.response.waitForStates(
           listOf(
             ResponseState.RESPONSE_RECEIVED,

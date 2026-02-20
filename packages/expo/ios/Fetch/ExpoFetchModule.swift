@@ -93,8 +93,8 @@ public final class ExpoFetchModule: Module {
         }
       }.runOnQueue(fetchRequestQueue)
 
-      AsyncFunction("startWithFileBody") { (request: NativeRequest, url: URL, requestInit: NativeRequestInit, file: SharedObject, promise: Promise) in
-        try request.startWithFileBody(
+      AsyncFunction("startWithFile") { (request: NativeRequest, url: URL, requestInit: NativeRequestInit, file: SharedObject, promise: Promise) in
+        try request.startWithFile(
           urlSession: urlSession,
           urlSessionDelegate: urlSessionDelegate,
           url: url,
