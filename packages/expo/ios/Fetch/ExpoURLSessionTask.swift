@@ -50,7 +50,7 @@ internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSe
     urlSessionDelegate: URLSessionSessionDelegateProxy,
     url: URL,
     requestInit: NativeRequestInit,
-    fileUri: String
+    fileURL: URL
   ) {
     let request = NSMutableURLRequest(url: url)
     URLProtocol.setProperty(requestInit.redirect == .follow, forKey: "shouldFollowRedirects", in: request)
@@ -68,8 +68,6 @@ internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSe
       request.addValue(tuple[1], forHTTPHeaderField: tuple[0])
     }
 
-    let filePath = fileUri.replacingOccurrences(of: "file://", with: "")
-    let fileURL = URL(fileURLWithPath: filePath)
     let task = urlSession.uploadTask(with: request as URLRequest, fromFile: fileURL)
     urlSessionDelegate.addDelegate(task: task, delegate: self)
     self.task = task

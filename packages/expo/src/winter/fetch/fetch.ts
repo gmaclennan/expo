@@ -1,3 +1,5 @@
+import { SharedObject } from 'expo-modules-core';
+
 import { ExpoFetchModule } from './ExpoFetchModule';
 import { FetchError } from './FetchErrors';
 import { FetchResponse, type AbortSubscriptionCleanupFunction } from './FetchResponse';
@@ -14,13 +16,9 @@ import type { FetchRequestInit, FetchRequestLike } from './fetch.types';
 const isRequest = (input: any): input is FetchRequestLike =>
   input != null && typeof input === 'object' && 'body' in input;
 
-/** Returns if `body` is an expo-file-system File object (duck-typed) */
-const isExpoFile = (body: any): body is { uri: string; type: string } =>
-  typeof body === 'object' &&
-  body != null &&
-  typeof body.uri === 'string' &&
-  (body.uri.startsWith('file://') || body.uri.startsWith('content://')) &&
-  'type' in body;
+/** Returns if `body` is a file-backed SharedObject (e.g. expo-file-system File) */
+const isFileSharedObject = (body: any): body is SharedObject & { uri: string; type?: string } =>
+  body instanceof SharedObject && typeof body.uri === 'string';
 
 // TODO(@kitten): Do we really want to use our own types for web standards?
 export async function fetch(
@@ -48,11 +46,13 @@ export async function fetch(
   const request = new ExpoFetchModule.NativeRequest(response) as NativeRequest;
 
   let requestBody: Uint8Array | null = null;
-  let fileUri: string | null = null;
+  let fileObject: SharedObject | null = null;
 
-  if (isExpoFile(body)) {
-    fileUri = body.uri;
-    headers = overrideHeaders(headers, [['Content-Type', body.type]]);
+  if (isFileSharedObject(body)) {
+    fileObject = body;
+    if (body.type) {
+      headers = overrideHeaders(headers, [['Content-Type', body.type]]);
+    }
   } else {
     const { body: normalizedBody, overriddenHeaders } = await normalizeBodyInitAsync(body);
     requestBody = normalizedBody;
@@ -75,8 +75,8 @@ export async function fetch(
     request.cancel();
   });
   try {
-    if (fileUri != null) {
-      await request.startWithFileBody(`${url}`, nativeRequestInit, fileUri);
+    if (fileObject != null) {
+      await request.startWithFileBody(`${url}`, nativeRequestInit, fileObject);
     } else {
       await request.start(`${url}`, nativeRequestInit, requestBody);
     }

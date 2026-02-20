@@ -36,15 +36,20 @@ internal final class NativeRequest: SharedObject, @unchecked Sendable {
     urlSessionDelegate: URLSessionSessionDelegateProxy,
     url: URL,
     requestInit: NativeRequestInit,
-    fileUri: String
-  ) {
+    file: SharedObject
+  ) throws {
+    // Extract the file URL from the FileSystemPath shared object.
+    // FileSystemPath is internal to ExpoFileSystem, so we use KVC to access the 'url' property.
+    guard let fileURL = (file as AnyObject).value(forKey: "url") as? URL else {
+      throw FetchFileBodyException()
+    }
     self.response.redirectMode = requestInit.redirect
     self.task.startWithFileBody(
       urlSession: urlSession,
       urlSessionDelegate: urlSessionDelegate,
       url: url,
       requestInit: requestInit,
-      fileUri: fileUri
+      fileURL: fileURL
     )
   }
 

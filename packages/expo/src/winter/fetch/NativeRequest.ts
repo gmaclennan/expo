@@ -11,7 +11,7 @@ export declare class NativeRequest extends SharedObject {
   public startWithFileBody(
     url: string,
     requestInit: NativeRequestInit,
-    fileUri: string
+    file: SharedObject
   ): Promise<NativeResponse>;
   public cancel(): void;
 }

@@ -46,17 +46,18 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
     enqueueRequest(client, url, requestInit, reqBody)
   }
 
-  fun startWithFileBody(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, fileUri: String) {
+  fun startWithFileBody(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, file: SharedObject) {
     val headers = requestInit.headers.toHeaders()
     val mediaType = headers["Content-Type"]?.toMediaTypeOrNull()
-    val uri = Uri.parse(fileUri)
+    // Extract the URI from the FileSystemPath shared object via reflection,
+    // since expo-file-system is not a compile-time dependency of this module.
+    val uri = file.javaClass.getMethod("getUri").invoke(file) as Uri
     val reqBody = if (uri.scheme == "content") {
       val context = appContext.reactContext
         ?: throw IllegalStateException("React context is not available")
       ContentUriRequestBody(context.contentResolver, uri, mediaType)
     } else {
-      val filePath = fileUri.removePrefix("file://")
-      File(filePath).asRequestBody(mediaType)
+      File(uri.path!!).asRequestBody(mediaType)
     }
     enqueueRequest(client, url, requestInit, reqBody)
   }

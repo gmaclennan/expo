@@ -19,3 +19,9 @@ internal final class FetchRedirectException: Exception {
     "Redirect is not allowed when redirect mode is 'error'"
   }
 }
+
+internal final class FetchFileBodyException: Exception {
+  override var reason: String {
+    "The provided SharedObject does not have a file URL. Expected a FileSystemFile object."
+  }
+}

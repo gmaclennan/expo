@@ -14,6 +14,7 @@ import expo.modules.kotlin.exception.toCodedException
 import expo.modules.kotlin.jni.NativeArrayBuffer
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.sharedobjects.SharedObject
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -142,9 +143,9 @@ class ExpoFetchModule : Module() {
           request: NativeRequest,
           url: URL,
           requestInit: NativeRequestInit,
-          fileUri: String,
+          file: SharedObject,
           promise: Promise ->
-        request.startWithFileBody(client, url, requestInit, fileUri)
+        request.startWithFileBody(client, url, requestInit, file)
         request.response.waitForStates(
           listOf(
             ResponseState.RESPONSE_RECEIVED,
