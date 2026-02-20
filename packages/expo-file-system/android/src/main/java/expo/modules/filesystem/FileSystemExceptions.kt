@@ -56,8 +56,3 @@ internal class DestinationAlreadyExistsException :
   CodedException(
     "Destination already exists"
   )
-
-internal class UnableToUploadException(reason: String) :
-  CodedException(
-    "Unable to upload a file: $reason"
-  )

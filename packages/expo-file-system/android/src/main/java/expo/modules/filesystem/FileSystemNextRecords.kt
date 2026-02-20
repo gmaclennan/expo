@@ -60,35 +60,3 @@ data class DirectoryInfo(
   @Field var modificationTime: Long? = null,
   @Field var creationTime: Long? = null
 ) : Record
-
-enum class UploadType(val value: Int) : Enumerable {
-  BINARY_CONTENT(0),
-  MULTIPART(1)
-}
-
-enum class UploadHttpMethod(val value: String) : Enumerable {
-  POST("POST"),
-  PUT("PUT"),
-  PATCH("PATCH")
-}
-
-data class UploadOptions(
-  @Field
-  val headers: Map<String, String> = emptyMap(),
-  @Field
-  val httpMethod: UploadHttpMethod = UploadHttpMethod.POST,
-  @Field
-  val uploadType: UploadType = UploadType.BINARY_CONTENT,
-  @Field
-  val fieldName: String? = null,
-  @Field
-  val mimeType: String? = null,
-  @Field
-  val parameters: Map<String, String>? = null
-) : Record
-
-data class UploadResult(
-  @Field var body: String?,
-  @Field var status: Int,
-  @Field var headers: Map<String, String>
-) : Record

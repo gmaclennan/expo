@@ -10,24 +10,17 @@ import expo.modules.interfaces.filesystem.Permission
 import expo.modules.kotlin.activityresult.AppContextActivityResultLauncher
 import expo.modules.kotlin.apifeatures.EitherType
 import expo.modules.kotlin.devtools.await
-import expo.modules.kotlin.devtools.toSingleMap
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.functions.Coroutine
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.typedarray.TypedArray
 import expo.modules.kotlin.types.Either
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
-import okio.BufferedSink
-import okio.source
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URI
-import java.net.URLConnection
 
 class FileSystemModule : Module() {
   private val context: Context
@@ -95,35 +88,6 @@ class FileSystemModule : Module() {
         }
       }
       return@Coroutine destination.toURI()
-    }
-
-    AsyncFunction("uploadFileAsync") Coroutine { url: URI, from: FileSystemFile, options: UploadOptions? ->
-      from.validatePermission(Permission.READ)
-      if (!from.exists) {
-        throw UnableToUploadException("file does not exist: ${from.uri}")
-      }
-
-      val uploadOptions = options ?: UploadOptions()
-      val requestBuilder = Request.Builder().url(url.toURL())
-
-      uploadOptions.headers.forEach { (key, value) ->
-        requestBuilder.addHeader(key, value)
-      }
-
-      val body = createUploadRequestBody(from, uploadOptions)
-      requestBuilder.method(uploadOptions.httpMethod.value, body)
-
-      val request = requestBuilder.build()
-      val client = OkHttpClient()
-      val response = request.await(client)
-
-      val result = UploadResult(
-        body = response.body?.string(),
-        status = response.code,
-        headers = response.headers.toSingleMap()
-      )
-      response.close()
-      return@Coroutine result
     }
 
     lateinit var filePickerLauncher: AppContextActivityResultLauncher<FilePickerContractOptions, FilePickerContractResult>
@@ -367,46 +331,6 @@ class FileSystemModule : Module() {
       // this function is internal and will be removed in the future (when returning arrays of shared objects is supported)
       Function("listAsRecords") { directory: FileSystemDirectory ->
         directory.listAsRecords()
-      }
-    }
-  }
-
-  private fun createUploadRequestBody(file: FileSystemFile, options: UploadOptions): RequestBody {
-    return when (options.uploadType) {
-      UploadType.BINARY_CONTENT -> {
-        val contentType = options.mimeType?.toMediaTypeOrNull()
-        object : RequestBody() {
-          override fun contentType() = contentType
-          override fun contentLength() = file.size ?: -1L
-          override fun writeTo(sink: BufferedSink) {
-            file.file.inputStream().use { input ->
-              sink.writeAll(input.source())
-            }
-          }
-        }
-      }
-      UploadType.MULTIPART -> {
-        val bodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
-        options.parameters?.forEach { (key, value) ->
-          bodyBuilder.addFormDataPart(key, value)
-        }
-        val fileName = file.file.fileName ?: "upload"
-        val mimeType = options.mimeType
-          ?: file.type
-          ?: URLConnection.guessContentTypeFromName(fileName)
-          ?: "application/octet-stream"
-        val fieldName = options.fieldName ?: "file"
-        val fileBody = object : RequestBody() {
-          override fun contentType() = mimeType.toMediaTypeOrNull()
-          override fun contentLength() = file.size ?: -1L
-          override fun writeTo(sink: BufferedSink) {
-            file.file.inputStream().use { input ->
-              sink.writeAll(input.source())
-            }
-          }
-        }
-        bodyBuilder.addFormDataPart(fieldName, fileName, fileBody)
-        bodyBuilder.build()
       }
     }
   }

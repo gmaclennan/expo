@@ -9,9 +9,6 @@ export {
   type PathInfo,
   type DirectoryInfo,
   type DownloadOptions,
-  type UploadOptions,
-  type UploadResult,
-  UploadType,
 } from './ExpoFileSystem.types';
 
 export * from './legacyWarnings';

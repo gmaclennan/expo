@@ -25,10 +25,6 @@ export default {
     console.warn('expo-file-system is not supported on web');
     return Promise.resolve();
   },
-  uploadFileAsync: () => {
-    console.warn('expo-file-system is not supported on web');
-    return Promise.resolve();
-  },
   get totalDiskSpace(): number {
     console.warn('expo-file-system is not supported on web');
     return 0;
