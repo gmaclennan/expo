@@ -93,6 +93,23 @@ public final class ExpoFetchModule: Module {
         }
       }.runOnQueue(fetchRequestQueue)
 
+      AsyncFunction("startWithFileBody") { (request: NativeRequest, url: URL, requestInit: NativeRequestInit, fileUri: String, promise: Promise) in
+        request.startWithFileBody(
+          urlSession: urlSession,
+          urlSessionDelegate: urlSessionDelegate,
+          url: url,
+          requestInit: requestInit,
+          fileUri: fileUri
+        )
+        request.response.waitFor(states: [.responseReceived, .errorReceived]) { state in
+          if state == .responseReceived {
+            promise.resolve()
+          } else if state == .errorReceived {
+            promise.reject(request.response.error ?? FetchUnknownException())
+          }
+        }
+      }.runOnQueue(fetchRequestQueue)
+
       AsyncFunction("cancel") { (request: NativeRequest) in
         request.cancel(urlSessionDelegate: self.urlSessionDelegate)
       }.runOnQueue(fetchRequestQueue)

@@ -31,6 +31,23 @@ internal final class NativeRequest: SharedObject, @unchecked Sendable {
     )
   }
 
+  func startWithFileBody(
+    urlSession: URLSession,
+    urlSessionDelegate: URLSessionSessionDelegateProxy,
+    url: URL,
+    requestInit: NativeRequestInit,
+    fileUri: String
+  ) {
+    self.response.redirectMode = requestInit.redirect
+    self.task.startWithFileBody(
+      urlSession: urlSession,
+      urlSessionDelegate: urlSessionDelegate,
+      url: url,
+      requestInit: requestInit,
+      fileUri: fileUri
+    )
+  }
+
   func cancel(urlSessionDelegate: URLSessionSessionDelegateProxy) {
     self.task.cancel(urlSessionDelegate: urlSessionDelegate)
     self.response.emitRequestCanceled()

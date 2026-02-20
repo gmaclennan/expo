@@ -45,6 +45,38 @@ internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSe
     self.delegate.urlSessionDidStart(self)
   }
 
+  func startWithFileBody(
+    urlSession: URLSession,
+    urlSessionDelegate: URLSessionSessionDelegateProxy,
+    url: URL,
+    requestInit: NativeRequestInit,
+    fileUri: String
+  ) {
+    let request = NSMutableURLRequest(url: url)
+    URLProtocol.setProperty(requestInit.redirect == .follow, forKey: "shouldFollowRedirects", in: request)
+    request.httpMethod = requestInit.method
+    request.timeoutInterval = 0
+    if requestInit.credentials == .include {
+      request.httpShouldHandleCookies = true
+      if let cookies = HTTPCookieStorage.shared.cookies(for: url) {
+        request.allHTTPHeaderFields = HTTPCookie.requestHeaderFields(with: cookies)
+      }
+    } else {
+      request.httpShouldHandleCookies = false
+    }
+    for tuple in requestInit.headers {
+      request.addValue(tuple[1], forHTTPHeaderField: tuple[0])
+    }
+
+    let filePath = fileUri.replacingOccurrences(of: "file://", with: "")
+    let fileURL = URL(fileURLWithPath: filePath)
+    let task = urlSession.uploadTask(with: request as URLRequest, fromFile: fileURL)
+    urlSessionDelegate.addDelegate(task: task, delegate: self)
+    self.task = task
+    task.resume()
+    self.delegate.urlSessionDidStart(self)
+  }
+
   func cancel(urlSessionDelegate: URLSessionSessionDelegateProxy) {
     if let task {
       urlSessionDelegate.removeDelegate(task: task)
