@@ -17,8 +17,11 @@ const isRequest = (input: any): input is FetchRequestLike =>
   input != null && typeof input === 'object' && 'body' in input;
 
 /** Returns if `body` is a file-backed SharedObject (e.g. expo-file-system File) */
-const isFileSharedObject = (body: any): body is SharedObject & { uri: string; type?: string } =>
-  body instanceof SharedObject && typeof body.uri === 'string';
+const isFileSharedObject = (body: any): body is SharedObject & { uri: string; type: string } =>
+  body instanceof SharedObject &&
+  typeof body.uri === 'string' &&
+  (body.uri.startsWith('file://') || body.uri.startsWith('content://')) &&
+  typeof body.type === 'string';
 
 // TODO(@kitten): Do we really want to use our own types for web standards?
 export async function fetch(
@@ -50,9 +53,7 @@ export async function fetch(
 
   if (isFileSharedObject(body)) {
     fileObject = body;
-    if (body.type) {
-      headers = overrideHeaders(headers, [['Content-Type', body.type]]);
-    }
+    headers = overrideHeaders(headers, [['Content-Type', body.type]]);
   } else {
     const { body: normalizedBody, overriddenHeaders } = await normalizeBodyInitAsync(body);
     requestBody = normalizedBody;

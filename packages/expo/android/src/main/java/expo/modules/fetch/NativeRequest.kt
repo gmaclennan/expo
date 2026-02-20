@@ -51,13 +51,23 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
     val mediaType = headers["Content-Type"]?.toMediaTypeOrNull()
     // Extract the URI from the FileSystemPath shared object via reflection,
     // since expo-file-system is not a compile-time dependency of this module.
-    val uri = file.javaClass.getMethod("getUri").invoke(file) as Uri
+    val uri = try {
+      file.javaClass.getMethod("getUri").invoke(file) as Uri
+    } catch (e: Exception) {
+      throw IllegalArgumentException(
+        "fetch body must be a FileSystemFile object with a uri property, got ${file.javaClass.name}",
+        e
+      )
+    }
+    val path = uri.path
     val reqBody = if (uri.scheme == "content") {
       val context = appContext.reactContext
         ?: throw IllegalStateException("React context is not available")
       ContentUriRequestBody(context.contentResolver, uri, mediaType)
+    } else if (path != null) {
+      File(path).asRequestBody(mediaType)
     } else {
-      File(uri.path!!).asRequestBody(mediaType)
+      throw IllegalArgumentException("File URI has no path: $uri")
     }
     enqueueRequest(client, url, requestInit, reqBody)
   }
