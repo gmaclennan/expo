@@ -45,3 +45,29 @@ struct WriteOptions: Record {
   @Field var encoding: WriteEncoding?
   @Field var append: Bool = false
 }
+
+enum UploadType: Int, Enumerable {
+  case binaryContent = 0
+  case multipart = 1
+}
+
+enum UploadHttpMethod: String, Enumerable {
+  case POST
+  case PUT
+  case PATCH
+}
+
+struct UploadOptions: Record {
+  @Field var headers: [String: String] = [:]
+  @Field var httpMethod: UploadHttpMethod = .POST
+  @Field var uploadType: UploadType = .binaryContent
+  @Field var fieldName: String?
+  @Field var mimeType: String?
+  @Field var parameters: [String: String]?
+}
+
+class UploadResult: Record {
+  @Field var body: String?
+  @Field var status: Int = 0
+  @Field var headers: [String: String] = [:]
+}

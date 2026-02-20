@@ -1,6 +1,13 @@
 import { NativeModule, requireNativeModule } from 'expo-modules-core';
 
-import type { Directory, File, DownloadOptions, PathInfo } from './ExpoFileSystem.types';
+import type {
+  Directory,
+  File,
+  DownloadOptions,
+  PathInfo,
+  UploadOptions,
+  UploadResult,
+} from './ExpoFileSystem.types';
 
 declare class ExpoFileSystemModule extends NativeModule {
   FileSystemDirectory: typeof Directory;
@@ -10,6 +17,7 @@ declare class ExpoFileSystemModule extends NativeModule {
     destination: File | Directory,
     options?: DownloadOptions
   ): Promise<string>;
+  uploadFileAsync(url: string, file: File, options?: UploadOptions): Promise<UploadResult>;
   pickDirectoryAsync(initialUri?: string): Promise<Directory>;
   pickFileAsync(initialUri?: string, mimeType?: string): Promise<File>;
   info(uri: string): PathInfo;

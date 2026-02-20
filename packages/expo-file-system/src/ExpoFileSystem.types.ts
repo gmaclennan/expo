@@ -325,6 +325,33 @@ export declare class File {
   static pickFileAsync(initialUri?: string, mimeType?: string): Promise<File | File[]>;
 
   /**
+   * A static method that uploads a file to a remote URL.
+   *
+   * The file data is streamed directly from disk to the network without being fully loaded into memory.
+   *
+   * @param url - The URL to upload the file to.
+   * @param file - The file to upload.
+   * @param options - Upload options including headers, HTTP method, upload type, and multipart parameters.
+   *
+   * @returns A promise that resolves to an `UploadResult` containing the response body, status code, and headers.
+   *
+   * @example
+   * ```ts
+   * const file = new File(Paths.document, "photo.jpg");
+   * const result = await File.uploadFileAsync("https://example.com/upload", file, {
+   *   uploadType: UploadType.MULTIPART,
+   *   fieldName: "photo",
+   *   parameters: { description: "My photo" },
+   * });
+   * ```
+   */
+  static uploadFileAsync(
+    url: string,
+    file: File,
+    options?: UploadOptions
+  ): Promise<UploadResult>;
+
+  /**
    * A size of the file in bytes. 0 if the file does not exist, or it cannot be read.
    */
   size: number;
@@ -428,6 +455,64 @@ export type PathInfo = {
    * Indicates whether the path is a directory. Returns true or false if the path exists; otherwise, returns null.
    */
   isDirectory: boolean | null;
+};
+
+export enum UploadType {
+  /**
+   * The file is sent as the raw request body (binary upload).
+   */
+  BINARY_CONTENT = 0,
+  /**
+   * The file is sent as a part of a multipart form data request.
+   */
+  MULTIPART = 1,
+}
+
+export type UploadOptions = {
+  /**
+   * The headers to send with the request.
+   */
+  headers?: Record<string, string>;
+  /**
+   * The HTTP method to use for the upload request.
+   * @default 'POST'
+   */
+  httpMethod?: 'POST' | 'PUT' | 'PATCH';
+  /**
+   * The upload type.
+   * @default UploadType.BINARY_CONTENT
+   */
+  uploadType?: UploadType;
+  /**
+   * The field name for the file in the multipart form data.
+   * Only used when `uploadType` is `UploadType.MULTIPART`.
+   * @default 'file'
+   */
+  fieldName?: string;
+  /**
+   * The MIME type of the file. If not provided, it is inferred from the file extension.
+   */
+  mimeType?: string;
+  /**
+   * Additional form data parameters to include in the multipart request.
+   * Only used when `uploadType` is `UploadType.MULTIPART`.
+   */
+  parameters?: Record<string, string>;
+};
+
+export type UploadResult = {
+  /**
+   * The response body as a string.
+   */
+  body: string | null;
+  /**
+   * The HTTP status code of the response.
+   */
+  status: number;
+  /**
+   * The response headers.
+   */
+  headers: Record<string, string>;
 };
 
 export type DirectoryInfo = {

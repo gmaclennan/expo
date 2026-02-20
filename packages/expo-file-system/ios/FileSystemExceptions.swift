@@ -108,3 +108,9 @@ internal final class FeatureNotAvailableOnPlatformException: Exception {
     "This feature is not available on this platform"
   }
 }
+
+internal final class UnableToUploadException: GenericException<String> {
+  override var reason: String {
+    "Unable to upload a file: \(param)"
+  }
+}
