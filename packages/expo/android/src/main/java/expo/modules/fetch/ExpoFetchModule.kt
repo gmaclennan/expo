@@ -8,13 +8,13 @@ import com.facebook.react.modules.network.CookieJarContainer
 import com.facebook.react.modules.network.ForwardingCookieHandler
 import com.facebook.react.modules.network.OkHttpClientProvider
 import expo.modules.core.errors.ModuleDestroyedException
+import expo.modules.filesystem.FileSystemFile
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.exception.toCodedException
 import expo.modules.kotlin.jni.NativeArrayBuffer
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import expo.modules.kotlin.sharedobjects.SharedObject
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -143,7 +143,7 @@ class ExpoFetchModule : Module() {
           request: NativeRequest,
           url: URL,
           requestInit: NativeRequestInit,
-          file: SharedObject,
+          file: FileSystemFile,
           promise: Promise ->
         request.startWithFile(client, url, requestInit, file)
         request.response.waitForStates(

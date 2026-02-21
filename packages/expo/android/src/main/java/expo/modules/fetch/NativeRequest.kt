@@ -2,9 +2,7 @@
 
 package expo.modules.fetch
 
-import android.content.ContentResolver
-import android.net.Uri
-import expo.modules.filesystem.FileSystemPath
+import expo.modules.filesystem.FileSystemFile
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.sharedobjects.SharedObject
 import okhttp3.Call
@@ -14,11 +12,9 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.BufferedSink
 import okio.source
-import java.io.File
 import java.net.URL
 
 private data class RequestHolder(var request: Request?)
@@ -47,23 +43,16 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
     enqueueRequest(client, url, requestInit, reqBody)
   }
 
-  fun startWithFile(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, file: SharedObject) {
+  fun startWithFile(client: OkHttpClient, url: URL, requestInit: NativeRequestInit, file: FileSystemFile) {
     val headers = requestInit.headers.toHeaders()
     val mediaType = headers["Content-Type"]?.toMediaTypeOrNull()
-    val fileSystemPath = file as? FileSystemPath
-      ?: throw IllegalArgumentException(
-        "fetch body must be a FileSystemFile object with a uri property, got ${file.javaClass.name}"
-      )
-    val uri = fileSystemPath.uri
-    val path = uri.path
-    val reqBody = if (uri.scheme == "content") {
-      val context = appContext.reactContext
-        ?: throw IllegalStateException("React context is not available")
-      ContentUriRequestBody(context.contentResolver, uri, mediaType, fileSystemPath)
-    } else if (path != null) {
-      File(path).asRequestBody(mediaType)
-    } else {
-      throw IllegalArgumentException("File URI has no path: $uri")
+    val unifiedFile = file.file
+    val reqBody = object : RequestBody() {
+      override fun contentType(): MediaType? = mediaType
+      override fun contentLength(): Long = unifiedFile.length().let { if (it > 0) it else -1L }
+      override fun writeTo(sink: BufferedSink) {
+        unifiedFile.inputStream().use { sink.writeAll(it.source()) }
+      }
     }
     enqueueRequest(client, url, requestInit, reqBody)
   }
@@ -98,31 +87,5 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
     val task = this.task ?: return
     task.cancel()
     response.emitRequestCanceled()
-  }
-}
-
-/**
- * An OkHttp RequestBody that streams content from a content:// URI
- * via ContentResolver without loading the entire file into memory.
- */
-private class ContentUriRequestBody(
-  private val contentResolver: ContentResolver,
-  private val uri: Uri,
-  private val mediaType: MediaType?,
-  private val fileSystemPath: FileSystemPath
-) : RequestBody() {
-  override fun contentType(): MediaType? = mediaType
-
-  override fun contentLength(): Long {
-    val length = fileSystemPath.file.length()
-    return if (length > 0) length else -1L
-  }
-
-  override fun writeTo(sink: BufferedSink) {
-    val inputStream = contentResolver.openInputStream(uri)
-      ?: throw IllegalStateException("Unable to open input stream for URI: $uri")
-    inputStream.use { stream ->
-      sink.writeAll(stream.source())
-    }
   }
 }
