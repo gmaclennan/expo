@@ -57,7 +57,7 @@ internal class NativeRequest(appContext: AppContext, internal val response: Nati
     val uri = fileSystemPath.uri
     val path = uri.path
     val reqBody = if (uri.scheme == "content") {
-      val context = appContext.reactContext
+      val context = appContext?.reactContext
         ?: throw IllegalStateException("React context is not available")
       ContentUriRequestBody(context.contentResolver, uri, mediaType, fileSystemPath)
     } else if (path != null) {
