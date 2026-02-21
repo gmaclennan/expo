@@ -8,6 +8,9 @@ import ExpoModulesCore
 internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSessionDataDelegate, @unchecked Sendable {
   private let delegate: ExpoURLSessionTaskDelegate
   private var task: URLSessionDataTask?
+  // Non-nil only when startAccessingSecurityScopedResource() returned true,
+  // meaning we must balance it with a stop call when the task finishes or is cancelled.
+  private var securityScopedFileURL: URL?
 
   init(delegate: ExpoURLSessionTaskDelegate) {
     self.delegate = delegate
@@ -68,6 +71,9 @@ internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSe
       request.addValue(tuple[1], forHTTPHeaderField: tuple[0])
     }
 
+    if fileURL.startAccessingSecurityScopedResource() {
+      securityScopedFileURL = fileURL
+    }
     let task = urlSession.uploadTask(with: request as URLRequest, fromFile: fileURL)
     urlSessionDelegate.addDelegate(task: task, delegate: self)
     self.task = task
@@ -76,6 +82,8 @@ internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSe
   }
 
   func cancel(urlSessionDelegate: URLSessionSessionDelegateProxy) {
+    securityScopedFileURL?.stopAccessingSecurityScopedResource()
+    securityScopedFileURL = nil
     if let task {
       urlSessionDelegate.removeDelegate(task: task)
       task.cancel()
@@ -114,6 +122,8 @@ internal final class ExpoURLSessionTask: NSObject, URLSessionTaskDelegate, URLSe
   }
 
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    securityScopedFileURL?.stopAccessingSecurityScopedResource()
+    securityScopedFileURL = nil
     self.delegate.urlSession(self, task: task, didCompleteWithError: error)
   }
 }
