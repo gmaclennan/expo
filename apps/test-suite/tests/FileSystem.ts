@@ -1252,6 +1252,17 @@ export async function test({ describe, expect, it, ...t }) {
   });
 
   describe('Exposes file handles', () => {
+    let originalTimeout: number;
+
+    t.beforeAll(async () => {
+      originalTimeout = t.jasmine.DEFAULT_TIMEOUT_INTERVAL;
+      t.jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout * 10;
+    });
+
+    t.afterAll(() => {
+      t.jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout;
+    });
+
     it('Allows opening files', () => {
       const src = new File(testDirectory, 'file.txt');
       src.write('Hello world');
@@ -1458,9 +1469,66 @@ export async function test({ describe, expect, it, ...t }) {
       // this is invalid
       expect(body.data.match(/filename="([^"]+)"/)[1]).toEqual('file.txt');
     });
+
+    it('Uploads file with correct Content-Type header', async () => {
+      const src = new File(testDirectory, 'upload-type-test.txt');
+      src.write('hello world');
+
+      const response = await fetch('https://httpbingo.org/anything', {
+        method: 'POST',
+        body: src,
+      });
+      const body = await response.json();
+      expect(body.headers['Content-Type'][0]).toContain('text/plain');
+    });
+
+    it('Uploads file with correct Content-Length header', async () => {
+      const content = 'abc'.repeat(100);
+      const src = new File(testDirectory, 'upload-length-test.txt');
+      src.write(content);
+
+      const response = await fetch('https://httpbingo.org/anything', {
+        method: 'POST',
+        body: src,
+      });
+      const body = await response.json();
+      expect(body.headers['Content-Length'][0]).toBe(String(content.length));
+    });
+
+    it('Streams a larger file upload without error', async () => {
+      const file = await createLargeFile(1000 * 1024 * 1024); // 500 MB
+
+      const response = await fetch('http://localhost:3000', {
+        method: 'PUT',
+        body: file,
+      });
+      expect(response.ok).toBe(true);
+    });
   });
 
   addAppleAppGroupsTestSuiteAsync({ describe, expect, it, ...t });
+}
+
+async function createLargeFile(sizeBytes) {
+  const file = new File(Paths.cache, 'upload-large-test.bin');
+
+  await file.create({ overwrite: true });
+
+  const chunkSize = 1024 * 1024; // 1MB
+  const chunk = new Uint8Array(chunkSize);
+  chunk.fill(120); // arbitrary binary data
+
+  let written = 0;
+
+  while (written < sizeBytes) {
+    const remaining = sizeBytes - written;
+    const toWrite = remaining < chunkSize ? chunk.subarray(0, remaining) : chunk;
+
+    await file.write(toWrite, { append: true });
+    written += toWrite.length;
+  }
+
+  return file;
 }
 
 function addAppleAppGroupsTestSuiteAsync({ describe, expect, it, ...t }) {
