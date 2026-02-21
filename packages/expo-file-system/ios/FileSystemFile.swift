@@ -4,7 +4,7 @@ import CryptoKit
 import UniformTypeIdentifiers
 
 public final class FileSystemFile: FileSystemPath {
-  public init(url: URL) {
+  init(url: URL) {
     super.init(url: url, isDirectory: false)
   }
 
